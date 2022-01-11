@@ -31,7 +31,7 @@
 			<image src="../../static/rightArrow.png" mode="widthFix" class="arrow" @click="choosePic"></image>
 		</view>
 		<view class="picContainer">
-			<view class="picItem" v-for='item in picList'>
+			<view class="picItem" v-for='item in tempList'>
 				<image :src="item" mode="widthFix" @click="previewPic(item)"></image>
 			</view>
 		</view>
@@ -42,15 +42,16 @@
 </template>
 
 <script>
-	import {putObject} from '../../commons/js/putPic.js'
+	import uploadImage from '../../js_sdk/yushijie-ossutil/ossutil/uploadFile.js'
+	import request from '../../commons/js/request.js'
 	export default {
 		data() {
 			return {
 				location:'',
 				startTime:'',
 				endTime:'',
-				picList:[],
-				fileList:[]
+				tempList:[],
+				picList:[]
 			};
 		},
 		computed:{
@@ -88,9 +89,7 @@
 				uni.chooseImage({
 					sourceType: ['album'],
 					success: function (res) {
-						that.picList = [...that.picList,...res.tempFilePaths]
-						that.fileList = [...that.fileList,...res.tempFiles]
-						console.log(res.tempFiles)
+						that.tempList = [...that.tempList,...res.tempFilePaths]
 					},
 				});
 			},
@@ -103,15 +102,37 @@
 				})
 			},
 			put(){
-				for(var i = 0;i<this.picList.length;i++){
-					uni.compressImage({
-						src:this.picList[i],
-						quality:100,
-						success(res){
-							console.log(res)
-						}
+				if(this.location===''||this.startTime===''||this.endTime===''){
+					uni.showToast({
+						title:'请将信息填写完整'
 					})
+					return;
 				}
+				
+				for(let i=0;i<this.tempList.length;i++){
+					uploadImage(this.tempList[i],'images/',
+						result =>{
+							this.picList.push(result)
+							if(this.picList.length == this.tempList.length){
+								const data = {
+									location:this.location,
+									startTime:this.startTime,
+									endTime:this.endTime,
+									picList:this.picList
+								}
+								console.log(JSON.stringify(this.picList))
+								request('post',data,'/addEvent').then(val=>{
+									if(val.code===20000){
+										uni.switchTab({
+											url:'../picWall/picWall'
+										})
+									}
+								})
+							}
+						}
+					)
+				}
+				
 			},
 			
 			
@@ -121,7 +142,7 @@
 
 <style lang="scss">
 	.addEvent{
-		padding:80rpx 30rpx 0;
+		padding:80rpx 30rpx 150rpx;
 		position: relative;
 		min-height: 100vh;
 		.locationInput{
@@ -175,11 +196,12 @@
 		}
 		.picContainer{
 			display: flex;
+			flex-wrap: wrap;
 			margin-top: 40rpx;
 			image{
 				width: 280rpx;
 				border-radius: 10rpx;
-				margin-right: 50rpx;
+				margin: 0 50rpx 30rpx 0;
 				box-shadow: 10rpx 10rpx 10rpx #ccc;
 			}
 		}
