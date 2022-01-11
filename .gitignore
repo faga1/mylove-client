@@ -11,6 +11,6 @@ node_modules/
 .eslintcache
 unpackage/dist/build/
 unpackage/dist/dev/
-
+js_sdk/yushijie-ossutil/ossutil/config.js
 # python
 *.pyc
